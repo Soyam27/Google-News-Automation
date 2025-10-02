@@ -23,30 +23,39 @@ options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
-
-# Use GitHub Actions default Chrome version (140)
-driver = uc.Chrome(version_main=140, options=options)
-
-# --- Open Google News and search ---
-driver.get("https://news.google.com/")
-
-# Wait for search box
-search_box = WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.XPATH, "//input[@aria-label='Search for topics, locations & sources']"))
-)
-search_box.send_keys(search_query)
-search_box.send_keys(Keys.RETURN)
-
-# --- Wait for headlines to load ---
-WebDriverWait(driver, 10).until(
-    EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.DY5T1d"))
+# Add realistic User-Agent
+options.add_argument(
+    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/140.0.7339.185 Safari/537.36"
 )
 
-# --- Scrape headlines and links ---
-soup = BeautifulSoup(driver.page_source, "lxml")
-driver.quit()
+# Use system Chrome version (GitHub Actions default Chrome)
+driver = uc.Chrome(options=options)
 
-articles = soup.select("a.DY5T1d")  # Headline links
+try:
+    # --- Open Google News ---
+    driver.get("https://news.google.com/")
+
+    # Wait for search box to appear
+    search_box = WebDriverWait(driver, 20).until(
+        EC.visibility_of_element_located((By.XPATH, "//input[@aria-label='Search for topics, locations & sources']"))
+    )
+
+    # --- Search for query ---
+    search_box.send_keys(search_query)
+    search_box.send_keys(Keys.RETURN)
+
+    # Wait until at least one headline is visible
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "a.DY5T1d"))
+    )
+
+    # --- Scrape headlines and links ---
+    soup = BeautifulSoup(driver.page_source, "lxml")
+finally:
+    driver.quit()
+
+articles = soup.select("a.DY5T1d")  # Headlines
 news_list = []
 
 for article in articles[:20]:  # Top 20 articles
