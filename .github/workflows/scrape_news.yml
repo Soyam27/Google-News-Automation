@@ -1,23 +1,14 @@
 name: Google News Scraper
 
-# Cron schedule + manual trigger
 on:
-  schedule:
-    - cron: '*/10 * * * *'  # Every 10 minutes (more reliable)
-  workflow_dispatch:        # Manual trigger
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   scrape-and-email:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
 
-      # Log timestamp for debugging
-      - name: Log timestamp
-        run: date
-
-      # Install Chrome
       - name: Install Chrome
         run: |
           sudo apt-get update
@@ -25,23 +16,25 @@ jobs:
           wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
-      # Setup Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install undetected-chromedriver selenium beautifulsoup4 lxml
 
-      # Run scraper
-      - name: Run scraper
+      - name: Run scraper every 5 minutes for 1 hour
         env:
           SEARCH_QUERY: ${{ secrets.SEARCH_QUERY }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
-        run: python scrapping.py
+        run: |
+          for i in {1..12}; do
+            echo "Run #$i at $(date)"
+            python scrapping.py
+            sleep 60  # wait 5 minutes
+          done
