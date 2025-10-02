@@ -3,7 +3,7 @@ import time
 import smtplib
 from email.mime.text import MIMEText
 from bs4 import BeautifulSoup
-import undetected_chromedriver.v2 as uc
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
@@ -16,13 +16,12 @@ sender_password = os.environ.get("SENDER_PASSWORD")  # Gmail App Password
 if not all([recipient_email, sender_email, sender_password]):
     raise ValueError("Set SENDER_EMAIL, SENDER_PASSWORD, RECIPIENT_EMAIL in environment variables")
 
-# --- Set up headless Chrome ---
+# --- Headless Chrome setup ---
 options = uc.ChromeOptions()
-options.headless = True
+options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
-
 driver = uc.Chrome(options=options)
 
 # --- Open Google News and search ---
@@ -34,17 +33,31 @@ search_box.send_keys(search_query)
 search_box.send_keys(Keys.RETURN)
 time.sleep(3)
 
-# --- Scrape page ---
+# --- Scrape headlines and links ---
 soup = BeautifulSoup(driver.page_source, "lxml")
 driver.quit()
-data = soup.get_text()
 
-# --- Send email ---
-msg = MIMEText(data)
-msg['Subject'] = f"Google News Results for '{search_query}'"
+articles = soup.select("article h3 a")  # Each news headline
+news_list = []
+
+for article in articles[:20]:  # Limit to top 20 articles
+    title = article.get_text()
+    link = article['href']
+    if link.startswith("."):
+        link = "https://news.google.com" + link[1:]
+    news_list.append(f"- {title}\n  {link}")
+
+if not news_list:
+    news_list = ["No news found."]
+
+# --- Prepare email content ---
+email_content = "\n\n".join(news_list)
+msg = MIMEText(email_content)
+msg['Subject'] = f"Google News: '{search_query}'"
 msg['From'] = sender_email
 msg['To'] = recipient_email
 
+# --- Send email ---
 try:
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
     server.login(sender_email, sender_password)
