@@ -29,14 +29,15 @@ options.add_argument(
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.185 Safari/537.36"
 )
 
-driver = uc.Chrome(options=options)
+# --- Use ChromeDriver compatible with GitHub Actions Chrome version (140) ---
+driver = uc.Chrome(version_main=140, options=options)
 
 try:
     # --- Navigate directly to Google News search results ---
     search_url = f"https://news.google.com/search?q={search_query}"
     driver.get(search_url)
 
-    # Wait until at least one headline is visible
+    # Wait until at least one headline is present
     WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "a.DY5T1d"))
     )
