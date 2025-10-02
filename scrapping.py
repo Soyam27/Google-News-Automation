@@ -1,11 +1,12 @@
 import os
-import time
 import smtplib
 from email.mime.text import MIMEText
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # --- Environment variables ---
 search_query = os.environ.get("SEARCH_QUERY", "Python")
@@ -28,22 +29,28 @@ driver = uc.Chrome(version_main=140, options=options)
 
 # --- Open Google News and search ---
 driver.get("https://news.google.com/")
-time.sleep(2)
 
-search_box = driver.find_element(By.XPATH, "//input[@aria-label='Search for topics, locations & sources']")
+# Wait for search box
+search_box = WebDriverWait(driver, 10).until(
+    EC.presence_of_element_located((By.XPATH, "//input[@aria-label='Search for topics, locations & sources']"))
+)
 search_box.send_keys(search_query)
 search_box.send_keys(Keys.RETURN)
-time.sleep(3)
+
+# --- Wait for headlines to load ---
+WebDriverWait(driver, 10).until(
+    EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.DY5T1d"))
+)
 
 # --- Scrape headlines and links ---
 soup = BeautifulSoup(driver.page_source, "lxml")
 driver.quit()
 
-articles = soup.select("article h3 a")  # Each news headline
+articles = soup.select("a.DY5T1d")  # Headline links
 news_list = []
 
 for article in articles[:20]:  # Top 20 articles
-    title = article.get_text()
+    title = article.get_text(strip=True)
     link = article['href']
     if link.startswith("."):
         link = "https://news.google.com" + link[1:]
