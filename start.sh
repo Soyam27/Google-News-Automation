@@ -5,4 +5,4 @@ apt update
 apt install -y chromium chromium-driver
 
 # Run Python script
-python3 main.py
+python3 scrapping.py
