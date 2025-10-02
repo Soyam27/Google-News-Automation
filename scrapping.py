@@ -1,46 +1,40 @@
 import os
 import requests
-from bs4 import BeautifulSoup
+from xml.etree import ElementTree
 import smtplib
 from email.mime.text import MIMEText
+from dotenv import load_dotenv
 
-# --- Environment variables ---
+
+# Load environment variables from .env file
+load_dotenv()
+
 search_query = os.environ.get("SEARCH_QUERY", "Python")
 recipient_email = os.environ.get("RECIPIENT_EMAIL")
 sender_email = os.environ.get("SENDER_EMAIL")
-sender_password = os.environ.get("SENDER_PASSWORD")  # Gmail App Password
+sender_password = os.environ.get("SENDER_PASSWORD")
 
 if not all([recipient_email, sender_email, sender_password]):
     raise ValueError("Set SENDER_EMAIL, SENDER_PASSWORD, RECIPIENT_EMAIL in environment variables")
 
-# --- Fetch Google News search results ---
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 (KHTML, like Gecko) "
-                  "Chrome/140.0.7339.185 Safari/537.36"
-}
+# --- Fetch Google News RSS ---
+rss_url = f"https://news.google.com/rss/search?q={search_query}&hl=en-US&gl=US&ceid=US:en"
+response = requests.get(rss_url)
+response.raise_for_status()
 
-search_url = f"https://news.google.com/search?q={search_query}"
-response = requests.get(search_url, headers=headers)
-response.raise_for_status()  # Raise error if request failed
+root = ElementTree.fromstring(response.content)
+items = root.findall(".//item")
 
-soup = BeautifulSoup(response.text, "lxml")
-
-# --- Scrape headlines and links ---
-articles = soup.select("a.DY5T1d")  # Headlines
 news_list = []
-
-for article in articles[:20]:  # Top 20 articles
-    title = article.get_text(strip=True)
-    link = article.get("href", "")
-    if link.startswith("."):
-        link = "https://news.google.com" + link[1:]
+for item in items[:20]:  # Top 20 articles
+    title = item.find("title").text
+    link = item.find("link").text
     news_list.append(f"- {title}\n  {link}")
 
 if not news_list:
     news_list = ["No news found."]
 
-# --- Prepare email content ---
+# --- Prepare email ---
 email_content = "\n\n".join(news_list)
 msg = MIMEText(email_content)
 msg['Subject'] = f"Google News: '{search_query}'"
