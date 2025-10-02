@@ -22,7 +22,9 @@ options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
-driver = uc.Chrome(options=options)
+
+# Use GitHub Actions default Chrome version (140)
+driver = uc.Chrome(version_main=140, options=options)
 
 # --- Open Google News and search ---
 driver.get("https://news.google.com/")
@@ -40,7 +42,7 @@ driver.quit()
 articles = soup.select("article h3 a")  # Each news headline
 news_list = []
 
-for article in articles[:20]:  # Limit to top 20 articles
+for article in articles[:20]:  # Top 20 articles
     title = article.get_text()
     link = article['href']
     if link.startswith("."):
