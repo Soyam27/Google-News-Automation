@@ -4,7 +4,6 @@ from email.mime.text import MIMEText
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -21,29 +20,21 @@ if not all([recipient_email, sender_email, sender_password]):
 options = uc.ChromeOptions()
 options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
-# Add realistic User-Agent
+options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--disable-blink-features=AutomationControlled")
 options.add_argument(
-    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/140.0.7339.185 Safari/537.36"
+    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.185 Safari/537.36"
 )
 
-# Use system Chrome version (GitHub Actions default Chrome)
 driver = uc.Chrome(options=options)
 
 try:
-    # --- Open Google News ---
-    driver.get("https://news.google.com/")
-
-    # Wait for search box to appear
-    search_box = WebDriverWait(driver, 20).until(
-        EC.visibility_of_element_located((By.XPATH, "//input[@aria-label='Search for topics, locations & sources']"))
-    )
-
-    # --- Search for query ---
-    search_box.send_keys(search_query)
-    search_box.send_keys(Keys.RETURN)
+    # --- Navigate directly to Google News search results ---
+    search_url = f"https://news.google.com/search?q={search_query}"
+    driver.get(search_url)
 
     # Wait until at least one headline is visible
     WebDriverWait(driver, 20).until(
@@ -52,6 +43,7 @@ try:
 
     # --- Scrape headlines and links ---
     soup = BeautifulSoup(driver.page_source, "lxml")
+
 finally:
     driver.quit()
 
