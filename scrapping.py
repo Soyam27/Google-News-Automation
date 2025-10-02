@@ -3,11 +3,9 @@ import requests
 from xml.etree import ElementTree
 import smtplib
 from email.mime.text import MIMEText
-from dotenv import load_dotenv
 
 
-# Load environment variables from .env file
-load_dotenv()
+
 
 search_query = os.environ.get("SEARCH_QUERY", "Python")
 recipient_email = os.environ.get("RECIPIENT_EMAIL")
