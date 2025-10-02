@@ -1,5 +1,5 @@
 selenium
 beautifulsoup4
 lxml
-chromedriver-autoinstaller
 python-dotenv
+undetected-chromedriver
